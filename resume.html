@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resume | Evan Kerr</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%99%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="site-header-mount"></div>
+
+<main>
+  <div class="resume-page-header">
+    <a id="resume-download-btn" class="document-link" href="#" download>↓ Download Resume (PDF)</a>
+  </div>
+
+  <div class="resume-viewer">
+    <div class="resume-toolbar">
+      <button id="resume-prev" class="nav-button" aria-label="Previous page" disabled>← Prev</button>
+      <span id="resume-page-indicator" class="resume-page-indicator">Loading…</span>
+      <button id="resume-next" class="nav-button" aria-label="Next page" disabled>Next →</button>
+    </div>
+    <div class="resume-canvas-wrap">
+      <canvas id="resume-canvas"></canvas>
+    </div>
+  </div>
+
+  <p id="resume-fallback" class="resume-fallback-msg" hidden>
+    Couldn't load the preview here.
+    <a id="resume-fallback-link" href="#" target="_blank" rel="noopener">Open the PDF directly →</a>
+  </p>
+</main>
+
+<div id="site-footer-mount"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/render.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+  renderHeader("resume");
+  renderFooter();
+
+  const pdfUrl = SITE.meta.resumePdf;
+  document.getElementById("resume-download-btn").href = pdfUrl;
+  document.getElementById("resume-fallback-link").href = pdfUrl;
+
+  const canvas = document.getElementById("resume-canvas");
+  const ctx = canvas.getContext("2d");
+  const prevBtn = document.getElementById("resume-prev");
+  const nextBtn = document.getElementById("resume-next");
+  const pageIndicator = document.getElementById("resume-page-indicator");
+  const viewer = document.querySelector(".resume-viewer");
+  const fallbackMsg = document.getElementById("resume-fallback");
+  const canvasWrap = document.querySelector(".resume-canvas-wrap");
+
+  let pdfDoc = null;
+  let currentPage = 1;
+  let rendering = false;
+
+  function renderPage(num) {
+    rendering = true;
+    pdfDoc.getPage(num).then(page => {
+      const containerWidth = canvasWrap.clientWidth;
+      const unscaledViewport = page.getViewport({ scale: 1 });
+      const scale = containerWidth / unscaledViewport.width;
+      const viewport = page.getViewport({ scale });
+
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      const renderTask = page.render({ canvasContext: ctx, viewport });
+      renderTask.promise.then(() => {
+        rendering = false;
+        pageIndicator.textContent = `Page ${num} of ${pdfDoc.numPages}`;
+        prevBtn.disabled = num <= 1;
+        nextBtn.disabled = num >= pdfDoc.numPages;
+      });
+    });
+  }
+
+  prevBtn.addEventListener("click", () => {
+    if (rendering || currentPage <= 1) return;
+    currentPage--;
+    renderPage(currentPage);
+  });
+
+  nextBtn.addEventListener("click", () => {
+    if (rendering || !pdfDoc || currentPage >= pdfDoc.numPages) return;
+    currentPage++;
+    renderPage(currentPage);
+  });
+
+  pdfjsLib.getDocument(pdfUrl).promise.then(doc => {
+    pdfDoc = doc;
+    renderPage(currentPage);
+  }).catch(() => {
+    viewer.hidden = true;
+    fallbackMsg.hidden = false;
+  });
+</script>
+</body>
+</html>

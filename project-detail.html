@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project | Evan Kerr</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%99%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="site-header-mount"></div>
+
+<main class="project-detail-page">
+  <div class="project-nav project-nav-top">
+    <button id="prev-project-top" class="nav-button">← Previous Project</button>
+    <a href="portfolio.html" class="back-link">Back to Project Portfolio Gallery</a>
+    <button id="next-project-top" class="nav-button">Next Project →</button>
+  </div>
+
+  <div id="project-detail-container"></div>
+
+  <div class="project-nav">
+    <button id="prev-project" class="nav-button">← Previous Project</button>
+    <a href="portfolio.html" class="back-link">Back to Project Portfolio Gallery</a>
+    <button id="next-project" class="nav-button">Next Project →</button>
+  </div>
+</main>
+
+<div id="site-footer-mount"></div>
+
+<script src="js/data.js"></script>
+<script src="js/render.js"></script>
+<script>
+  // Carousel control functions
+  window.carouselNext = function(button) {
+    const container = button.closest('.carousel-container');
+    const slides = container.querySelector('.carousel-slides');
+    const slideCount = slides.querySelectorAll('.carousel-slide').length;
+    const dots = container.querySelectorAll('.dot');
+    
+    // Find current active slide
+    let currentIdx = 0;
+    slides.querySelectorAll('.carousel-slide').forEach((slide, idx) => {
+      if (slide.classList.contains('active')) currentIdx = idx;
+    });
+    
+    // Move to next
+    const nextIdx = (currentIdx + 1) % slideCount;
+    slides.querySelectorAll('.carousel-slide').forEach((slide, idx) => {
+      slide.classList.toggle('active', idx === nextIdx);
+    });
+    dots.forEach((dot, idx) => {
+      dot.classList.toggle('active', idx === nextIdx);
+    });
+  };
+  
+  window.carouselPrev = function(button) {
+    const container = button.closest('.carousel-container');
+    const slides = container.querySelector('.carousel-slides');
+    const slideCount = slides.querySelectorAll('.carousel-slide').length;
+    const dots = container.querySelectorAll('.dot');
+    
+    // Find current active slide
+    let currentIdx = 0;
+    slides.querySelectorAll('.carousel-slide').forEach((slide, idx) => {
+      if (slide.classList.contains('active')) currentIdx = idx;
+    });
+    
+    // Move to previous
+    const prevIdx = (currentIdx - 1 + slideCount) % slideCount;
+    slides.querySelectorAll('.carousel-slide').forEach((slide, idx) => {
+      slide.classList.toggle('active', idx === prevIdx);
+    });
+    dots.forEach((dot, idx) => {
+      dot.classList.toggle('active', idx === prevIdx);
+    });
+  };
+  
+  function renderProjectDetail() {
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get("id");
+    
+    if (!projectId) {
+      window.location.href = "portfolio.html";
+      return;
+    }
+    
+    const project = SITE.projects.find(p => p.id === projectId);
+    if (!project) {
+      window.location.href = "portfolio.html";
+      return;
+    }
+    
+    // Find current index for navigation
+    const currentIndex = SITE.projects.findIndex(p => p.id === projectId);
+    
+    // Render header
+    renderHeader("portfolio");
+    renderFooter();
+    
+    // Render project details based on format
+    const container = document.getElementById("project-detail-container");
+    
+    if (project.format === "format1") {
+      // FORMAT 1: Detailed narrative layout
+      const fmt = project.format1;
+      const heroContent = fmt.collaboration
+        ? `<img src="${fmt.collaboration.logo}" alt="${fmt.collaboration.logoAlt || fmt.collaboration.partner}">`
+        : fmt.heroImage
+        ? `<img src="${fmt.heroImage}" alt="Project hero image">`
+        : `<span class="thumb-icon">${project.icon}</span>`;
+      
+      const sectionsHtml = fmt.sections.map(section => {
+        switch(section.type) {
+          case "sectionTitle":
+            return `
+              <div class="format1-section section-title-divider">
+                <h2>${section.title}</h2>
+              </div>
+            `;
+          case "text":
+            return `
+              <div class="format1-section text-section">
+                <h3>${section.title}</h3>
+                <p>${section.content}</p>
+                ${section.bullets ? `<ul class="bullet-list">${section.bullets.map(b => `<li>${b}</li>`).join("")}</ul>` : ""}
+              </div>
+            `;
+          case "textPhotoSplitColumn":
+            return `
+              <div class="format1-section text-photo-split-column">
+                <div class="split-content">
+                  <div class="split-text column-width-narrow">
+                    <h3>${section.title}</h3>
+                    <p>${section.text}</p>
+                  </div>
+                  <div class="split-photos">
+                    ${section.photos.map(photo => `
+                      <div class="split-photo-item">
+                        <img src="${photo.src}" alt="${photo.alt}">
+                      </div>
+                    `).join("")}
+                  </div>
+                </div>
+              </div>
+            `;
+          case "textPhotoSplit":
+            return `
+              <div class="format1-section text-photo-split">
+                <div class="split-content ${section.narrowPhoto ? "split-content-narrow-photo" : ""} ${section.narrowText ? "split-content-narrow-text" : ""}">
+                  <div class="split-text-stack">
+                    <div class="split-text">
+                      <h3>${section.title}</h3>
+                      <p>${section.text}</p>
+                      ${section.bullets ? `<ul class="bullet-list">${section.bullets.map(b => `<li>${b}</li>`).join("")}</ul>` : ""}
+                      ${section.userApproaches ? `<p class="user-approaches"><strong>User Research:</strong> ${section.userApproaches}</p>` : ""}
+                      ${(section.showCalculationsLink && fmt.calculationsLink) || (section.showEngineeringDrawingsLink && fmt.engineeringDrawingsLink) ? `
+                        <div class="intro-links">
+                          ${section.showCalculationsLink && fmt.calculationsLink ? `<a href="${fmt.calculationsLink}" class="calculations-link-top" target="_blank" rel="noopener">View Calculations & Report</a>` : ""}
+                          ${section.showEngineeringDrawingsLink && fmt.engineeringDrawingsLink ? `<a href="${fmt.engineeringDrawingsLink}" class="calculations-link-top" target="_blank" rel="noopener">View Engineering Drawings</a>` : ""}
+                        </div>
+                      ` : ""}
+                    </div>
+                    ${section.extraBlocks ? section.extraBlocks.map(block => `
+                      <div class="split-text">
+                        <h3>${block.title}</h3>
+                        <p>${block.text}</p>
+                        ${block.bullets ? `<ul class="bullet-list">${block.bullets.map(b => `<li>${b}</li>`).join("")}</ul>` : ""}
+                      </div>
+                    `).join("") : ""}
+                  </div>
+                  <div class="split-photo">
+                    <img src="${section.photo.src}" alt="${section.photo.alt}">
+                  </div>
+                </div>
+              </div>
+            `;
+          case "designIteration":
+            return `
+              <div class="format1-section design-iteration">
+                <div class="iteration-grid">
+                  <div class="iteration-photo">
+                    <img src="${section.photo.src}" alt="${section.photo.alt}">
+                  </div>
+                  <div class="iteration-text">
+                    <h3>${section.title}</h3>
+                    <p>${section.description}</p>
+                    ${section.bullets ? `<ul class="bullet-list">${section.bullets.map(b => `<li>${b}</li>`).join("")}</ul>` : ""}
+                  </div>
+                </div>
+              </div>
+            `;
+          case "textPhotoCarousel":
+            return `
+              <div class="format1-section text-photo-carousel">
+                <div class="split-content ${section.reverse ? "split-content-reverse" : ""}">
+                  <div class="split-text">
+                    <h3>${section.title}</h3>
+                    <p>${section.text}</p>
+                    ${section.bullets ? `<ul class="bullet-list">${section.bullets.map(b => `<li>${b}</li>`).join("")}</ul>` : ""}
+                    ${section.userApproaches ? `<p class="user-approaches"><strong>User Research:</strong> ${section.userApproaches}</p>` : ""}
+                  </div>
+                  <div class="carousel-container">
+                    <div class="carousel-slides">
+                      ${section.photos.map((photo, idx) => `
+                        <div class="carousel-slide ${idx === 0 ? 'active' : ''}">
+                          <img src="${photo.src}" alt="${photo.alt}">
+                        </div>
+                      `).join("")}
+                    </div>
+                    <button class="carousel-prev" onclick="carouselPrev(this)">❮</button>
+                    <button class="carousel-next" onclick="carouselNext(this)">❯</button>
+                    <div class="carousel-dots">
+                      ${section.photos.map((_, idx) => `
+                        <span class="dot ${idx === 0 ? 'active' : ''}"></span>
+                      `).join("")}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+          case "threeColumn":
+            return `
+              <div class="format1-section three-column-section">
+                ${section.title ? `<h3>${section.title}</h3>` : ""}
+                <div class="three-column-grid cols-${section.columns.length} ${section.wideFirstColumn ? "wide-first" : ""}">
+                  ${section.columns.map(col => {
+                    if (col.link) {
+                      return `
+                    <div class="column-item column-item-link">
+                      <a href="${col.link.href || fmt.reportLink || "#"}" class="document-link" target="_blank" rel="noopener">↓ ${col.link.text}</a>
+                    </div>
+                  `;
+                    }
+                    if (section.splitCards) {
+                      return `
+                    <div class="column-item-stack">
+                      <div class="column-item">
+                        <h4>${col.heading}</h4>
+                        <p>${col.description}</p>
+                      </div>
+                      ${col.photo ? `<div class="column-photo-card"><img src="${col.photo.src}" alt="${col.photo.alt}"></div>` : ""}
+                    </div>
+                  `;
+                    }
+                    const photoHtml = col.photos
+                      ? `<div class="column-photo-row">${col.photos.map(p => `<div class="column-photo ${section.photoHeight || ""} ${p.contain ? "column-photo-auto" : ""}"><img src="${p.src}" alt="${p.alt}" style="${p.contain ? "object-fit: contain;" : ""}"></div>`).join("")}</div>`
+                      : col.photo ? `<div class="column-photo ${section.photoHeight || ""} ${col.photo.contain ? "column-photo-auto" : ""}"><img src="${col.photo.src}" alt="${col.photo.alt}" style="${col.photo.contain ? "object-fit: contain;" : ""}"></div>` : "";
+                    const headingHtml = col.bubbleHeading
+                      ? `<div class="column-title-bubble">${col.heading}</div>`
+                      : `<h4 class="${col.number ? "column-heading-numbered" : ""} ${col.bigHeading ? "column-heading-large" : ""}">${col.number ? `<span class="column-number">${col.number}</span>` : ""}${col.heading}</h4>`;
+                    const textHtml = `
+                      ${headingHtml}
+                      ${col.description ? `<p>${col.description}</p>` : ""}
+                      ${col.bullets ? `<ul class="bullet-list">${col.bullets.map(b => `<li>${b}</li>`).join("")}</ul>` : ""}
+                      ${col.formula ? `<div class="formula-block"><div class="formula-eq">${col.formula}</div></div>` : ""}
+                    `;
+                    return `
+                    <div class="column-item">
+                      ${col.textFirst ? `${textHtml}${photoHtml}` : `${photoHtml}${textHtml}`}
+                    </div>
+                  `;
+                  }).join("")}
+                </div>
+                ${section.skills ? `
+                  <div class="section-skills">
+                    <span class="skills-label">Techniques Used</span>
+                    <div class="tag-row">
+                      ${section.skills.map(skill => {
+                        const c = colorForTag(skill);
+                        return `<span class="tag-pill" style="background-color: ${c.bg}; color: ${c.fg}">${skill}</span>`;
+                      }).join("")}
+                    </div>
+                  </div>
+                ` : ""}
+              </div>
+            `;
+          case "twoPhotoComparison":
+            return `
+              <div class="format1-section two-photo-section">
+                <h3>${section.title}</h3>
+                <p class="section-description">${section.description}</p>
+                <div class="two-photo-grid">
+                  ${section.photos.map(photo => `
+                    <figure class="comparison-photo">
+                      <img src="${photo.src}" alt="${photo.alt}">
+                    </figure>
+                  `).join("")}
+                </div>
+              </div>
+            `;
+          case "twoColumnWithSlideshow":
+            return `
+              <div class="format1-section two-column-slideshow">
+                <h3>${section.title}</h3>
+                <div class="two-column-slideshow-content">
+                  <div class="slideshow-column">
+                    <h4>${section.leftColumnTitle}</h4>
+                    <p>${section.leftColumnText}</p>
+                    ${section.leftBullets ? `<ul class="bullet-list">${section.leftBullets.map(b => `<li>${b}</li>`).join("")}</ul>` : ""}
+                    <div class="carousel-container" style="margin-top: 16px;">
+                      <div class="carousel-slides">
+                        ${section.leftPhotos.map((photo, idx) => `
+                          <div class="carousel-slide ${idx === 0 ? 'active' : ''}">
+                            <img src="${photo.src}" alt="${photo.alt}">
+                          </div>
+                        `).join("")}
+                      </div>
+                      <button class="carousel-prev" onclick="carouselPrev(this)">❮</button>
+                      <button class="carousel-next" onclick="carouselNext(this)">❯</button>
+                      <div class="carousel-dots">
+                        ${section.leftPhotos.map((_, idx) => `
+                          <span class="dot ${idx === 0 ? 'active' : ''}"></span>
+                        `).join("")}
+                      </div>
+                    </div>
+                    ${section.showCalculationsLink && fmt.calculationsLink ? `<a href="${fmt.calculationsLink}" class="calculations-link-top" target="_blank" rel="noopener">View Calculations & Report</a>` : ""}
+                  </div>
+                  <div class="text-column">
+                    <h4>${section.rightColumnTitle}</h4>
+                    <p>${section.rightColumnText}</p>
+                    ${section.rightBullets ? `<ul class="bullet-list">${section.rightBullets.map(b => `<li>${b}</li>`).join("")}</ul>` : ""}
+                    <div class="carousel-container" style="margin-top: 16px;">
+                      <div class="carousel-slides">
+                        ${section.rightPhotos.map((photo, idx) => `
+                          <div class="carousel-slide ${idx === 0 ? 'active' : ''}">
+                            <img src="${photo.src}" alt="${photo.alt}">
+                          </div>
+                        `).join("")}
+                      </div>
+                      <button class="carousel-prev" onclick="carouselPrev(this)">❮</button>
+                      <button class="carousel-next" onclick="carouselNext(this)">❯</button>
+                      <div class="carousel-dots">
+                        ${section.rightPhotos.map((_, idx) => `
+                          <span class="dot ${idx === 0 ? 'active' : ''}"></span>
+                        `).join("")}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+          case "resultsSplit":
+            return `
+              <div class="format1-section results-split-section">
+                ${section.title ? `<h3>${section.title}</h3>` : ""}
+                <div class="results-split-content">
+                  <div class="results-media-stack">
+                    <div class="carousel-container">
+                      <div class="carousel-slides">
+                        ${section.photos.map((photo, idx) => `
+                          <div class="carousel-slide ${idx === 0 ? 'active' : ''}">
+                            <img src="${photo.src}" alt="${photo.alt}">
+                          </div>
+                        `).join("")}
+                      </div>
+                      <button class="carousel-prev" onclick="carouselPrev(this)">❮</button>
+                      <button class="carousel-next" onclick="carouselNext(this)">❯</button>
+                      <div class="carousel-dots">
+                        ${section.photos.map((_, idx) => `
+                          <span class="dot ${idx === 0 ? 'active' : ''}"></span>
+                        `).join("")}
+                      </div>
+                    </div>
+                    ${section.table ? `
+                      <div class="results-table-card">
+                        <table class="results-table">
+                          <thead>
+                            <tr>${section.table.headers.map(h => `<th>${h}</th>`).join("")}</tr>
+                          </thead>
+                          <tbody>
+                            <tr>${section.table.headers.map((h, idx) => `<td class="${section.table.highlightCols && section.table.highlightCols.includes(idx) ? (section.table.highlightType === "bad" ? "highlight-bad" : "highlight") : ""}">${(section.table.values && section.table.values[idx]) || ""}</td>`).join("")}</tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    ` : ""}
+                  </div>
+                  <div class="results-side-stack">
+                    ${section.bullets ? `
+                      <div class="results-notes-card">
+                        ${section.bulletsTitle ? `<h4>${section.bulletsTitle}</h4>` : ""}
+                        <ul class="bullet-list">${section.bullets.map(b => `<li>${b}</li>`).join("")}</ul>
+                      </div>
+                    ` : ""}
+                  </div>
+                </div>
+              </div>
+            `;
+          case "link":
+            return `
+              <div class="format1-section link-section">
+                <a href="${section.href || fmt.reportLink || "#"}" class="document-link" target="_blank" rel="noopener">↓ ${section.text}</a>
+              </div>
+            `;
+          default:
+            return "";
+        }
+      }).join("");
+      
+      container.innerHTML = `
+        <div class="project-detail format1-full">
+          <div class="format1-hero-intro-row">
+            <div class="format1-hero">
+              ${heroContent}
+            </div>
+            <div class="format1-intro-column">
+              <h1 class="detail-title">${project.title}</h1>
+              <div class="detail-tags">
+                ${project.tags.map(tag => {
+                  const c = colorForTag(tag);
+                  return `
+                  <span class="tag-pill" style="background-color: ${c.bg}; color: ${c.fg}">
+                    ${tag}
+                  </span>
+                `;
+                }).join("")}
+              </div>
+              ${fmt.collaboration ? `
+                <div class="intro-collab-card">
+                  <div class="collab-label">In Collaboration With</div>
+                  <div class="collab-partner">${fmt.collaboration.partner}</div>
+                  ${fmt.collaboration.note ? `<p class="collab-note">${fmt.collaboration.note}</p>` : ""}
+                </div>
+              ` : ""}
+              ${fmt.primaryTheme && fmt.primaryTheme.intro ? `
+                <div class="format1-intro">
+                  <h3 class="intro-title">${fmt.primaryTheme.title || "Project Overview"}</h3>
+                  <p class="intro-text">${fmt.primaryTheme.intro}</p>
+                  ${fmt.primaryTheme.role ? `<p class="intro-secondary"><span class="inline-label">My Role:</span> ${fmt.primaryTheme.role}</p>` : ""}
+                </div>
+              ` : ""}
+              <div class="intro-links">
+                ${fmt.calculationsLink ? `<a href="${fmt.calculationsLink}" class="calculations-link-top" target="_blank" rel="noopener">View Calculations & Report</a>` : ""}
+                ${fmt.engineeringDrawingsLink ? `<a href="${fmt.engineeringDrawingsLink}" class="calculations-link-top" target="_blank" rel="noopener">View Engineering Drawings</a>` : ""}
+                ${fmt.githubLink ? `<a href="${fmt.githubLink}" class="calculations-link-top" target="_blank" rel="noopener">View Code on GitHub</a>` : ""}
+                ${fmt.reportLink ? `<a href="${fmt.reportLink}" class="calculations-link-top" target="_blank" rel="noopener">View Full Report (PDF)</a>` : ""}
+              </div>
+            </div>
+          </div>
+
+          <div class="format1-content">
+            <div class="format1-sections">
+              ${sectionsHtml}
+            </div>
+            
+            ${project.link ? `
+              <div class="detail-link">
+                <a href="${project.link}" target="_blank" rel="noopener">
+                  View Project Report →
+                </a>
+              </div>
+            ` : ""}
+          </div>
+        </div>
+      `;
+    } else if (project.format === "format2") {
+      // FORMAT 2: Objective/Alternative/Tests layout
+      const fmt = project.format2;
+      const thumbContent = project.image 
+        ? `<img src="${project.image}" alt="${project.title}">`
+        : `<span class="thumb-icon">${project.icon}</span>`;
+      
+      container.innerHTML = `
+        <div class="project-detail format2">
+          <div class="detail-thumb">${thumbContent}</div>
+          <div class="detail-content">
+            <h1 class="detail-title">${project.title}</h1>
+            <div class="detail-tags">
+              ${project.tags.map(tag => {
+                const c = colorForTag(tag);
+                return `
+                <span class="tag-pill" style="background-color: ${c.bg}; color: ${c.fg}">
+                  ${tag}
+                </span>
+              `;
+              }).join("")}
+            </div>
+            
+            <div class="format2-objective">
+              <h3>Objective</h3>
+              <p>${fmt.objective}</p>
+            </div>
+            
+            <div class="format2-alternative">
+              <h3>Alternative Approaches</h3>
+              <p>${fmt.alternative}</p>
+            </div>
+            
+            <div class="format2-tests">
+              <h3>Tests & Methodology</h3>
+              <ul>
+                ${fmt.tests.map(test => `<li>${test}</li>`).join("")}
+              </ul>
+            </div>
+            
+            <div class="format2-results">
+              <h3>Test Results</h3>
+              <div class="results-images">
+                ${fmt.resultsImages.map(img => `
+                  <figure class="result-image">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 400'%3E%3Crect width='600' height='400' fill='%23252525'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-size='18' fill='%23707070'%3E${img.alt}%3C/text%3E%3C/svg%3E" alt="${img.alt}">
+                    <figcaption>${img.caption}</figcaption>
+                  </figure>
+                `).join("")}
+              </div>
+            </div>
+            
+            ${project.link ? `
+              <div class="detail-link">
+                <a href="${project.link}" target="_blank" rel="noopener">
+                  View Full Report →
+                </a>
+              </div>
+            ` : ""}
+          </div>
+        </div>
+      `;
+    } else {
+      // DEFAULT FORMAT: Standard text layout
+      const thumbContent = project.image 
+        ? `<img src="${project.image}" alt="${project.title}">`
+        : `<span class="thumb-icon">${project.icon}</span>`;
+      
+      container.innerHTML = `
+        <div class="project-detail">
+          <div class="detail-thumb">${thumbContent}</div>
+          <div class="detail-content">
+            <h1 class="detail-title">${project.title}</h1>
+            <div class="detail-tags">
+              ${project.tags.map(tag => {
+                const c = colorForTag(tag);
+                return `
+                <span class="tag-pill" style="background-color: ${c.bg}; color: ${c.fg}">
+                  ${tag}
+                </span>
+              `;
+              }).join("")}
+            </div>
+            <div class="detail-body">
+              ${project.details.split("\n").map(para => `<p>${para.trim()}</p>`).join("")}
+            </div>
+            ${project.link ? `
+              <div class="detail-link">
+                <a href="${project.link}" target="_blank" rel="noopener">
+                  View Project →
+                </a>
+              </div>
+            ` : ""}
+          </div>
+        </div>
+      `;
+    }
+    
+    // Setup navigation (top and bottom nav bars)
+    const prevBtns = [document.getElementById("prev-project-top"), document.getElementById("prev-project")];
+    const nextBtns = [document.getElementById("next-project-top"), document.getElementById("next-project")];
+
+    prevBtns.forEach(prevBtn => {
+      if (!prevBtn) return;
+      if (currentIndex > 0) {
+        prevBtn.onclick = () => {
+          window.location.href = `project-detail.html?id=${SITE.projects[currentIndex - 1].id}`;
+        };
+      } else {
+        prevBtn.disabled = true;
+        prevBtn.style.opacity = "0.5";
+        prevBtn.style.cursor = "default";
+      }
+    });
+
+    nextBtns.forEach(nextBtn => {
+      if (!nextBtn) return;
+      if (currentIndex < SITE.projects.length - 1) {
+        nextBtn.onclick = () => {
+          window.location.href = `project-detail.html?id=${SITE.projects[currentIndex + 1].id}`;
+        };
+      } else {
+        nextBtn.disabled = true;
+        nextBtn.style.opacity = "0.5";
+        nextBtn.style.cursor = "default";
+      }
+    });
+  }
+  
+  renderProjectDetail();
+</script>
+</body>
+</html>
