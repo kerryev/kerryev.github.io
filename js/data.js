@@ -23,7 +23,7 @@ const SITE = {
     role: "MechE Student",
     wip: "",
     lastUpdated: "September 2026",
-    resumePdf: "pdf/resume.pdf",
+    resumePdf: "pdf/EK_Resume.pdf?v=2026-09-23",
     linkedin: "https://linkedin.com/in/evankerr10",
     email: "evankerr10@gmail.com",
   },
@@ -98,7 +98,7 @@ const SITE = {
       link: "",
       format: "format1",
       format1: {
-        calculationsLink: "pdf/calcs.pdf",
+        calculationsLink: "pdf/calcs.pdf?v=2026-09-23",
         engineeringDrawingsLink: "pdf/drawings.pdf",
         collaboration: {
           logo: "images/Conforming Pneumatic End Effector/finalscaled1.png",
